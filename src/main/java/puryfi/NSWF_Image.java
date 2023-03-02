@@ -5,22 +5,14 @@
 
 package puryfi;
 
-import java.awt.AlphaComposite;
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.GradientPaint;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.RadialGradientPaint;
-import java.awt.Rectangle;
+import org.json.JSONObject;
+
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.MultipleGradientPaint.CycleMethod;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
 import java.io.File;
@@ -31,10 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.imageio.ImageIO;
-import javax.swing.JLabel;
-import org.json.JSONObject;
 
+@SuppressWarnings("unused") //we're a dirty bean
 public class NSWF_Image {
     List<NSFW_BoundingBox> results = new ArrayList<>();
     Double nsfw_score;
@@ -135,7 +125,7 @@ public class NSWF_Image {
                 this.img = ImageIO.read(this.image);
                 return this.img;
             } catch (IOException var2) {
-                Logger.getLogger(NSWF_Image.class.getName()).log(Level.SEVERE, (String)null, var2);
+                Logger.getLogger(NSWF_Image.class.getName()).log(Level.SEVERE, null, var2);
                 return null;
             }
         }
@@ -149,38 +139,41 @@ public class NSWF_Image {
                 this.img = ImageIO.read(this.image);
                 return copyImage(this.img);
             } catch (IOException var2) {
-                Logger.getLogger(NSWF_Image.class.getName()).log(Level.SEVERE, (String)null, var2);
+                Logger.getLogger(NSWF_Image.class.getName()).log(Level.SEVERE, null, var2);
                 return null;
             }
         }
     }
 
-    public BufferedImage getCensoredImage() {
+    public BufferedImage getCensoredImage(boolean isPixels, boolean isBlackBar) {
         BufferedImage paintedImage = this.getBufferedImageCopy();
         Graphics g = paintedImage.getGraphics();
-        List<Rectangle> blurboxes = new ArrayList();
+        List<Rectangle> blurboxes = new ArrayList<>();
 
-        for(int i = 0; i < this.results.size(); ++i) {
-            Rectangle bounding_box = ((NSFW_BoundingBox)this.results.get(i)).getBounding_box();
-            if (((NSFW_BoundingBox)this.results.get(i)).getSticker() != null) {
-                this.paintSticker(g, ((NSFW_BoundingBox)this.results.get(i)).getSticker(), bounding_box);
-            } else if (NSWFAPI.pixelButton.isSelected()) {
-                if (((NSFW_BoundingBox)this.results.get(i)).isCensored()) {
+        for (NSFW_BoundingBox result : this.results) {
+            Rectangle bounding_box = result.getBounding_box();
+
+            boolean shouldCensor = result.isCensored();
+
+            if (shouldCensor) {
+                if (isPixels) {
                     this.pixelate(paintedImage, bounding_box);
-                }
-            } else if (NSWFAPI.barButton.isSelected()) {
-                if (((NSFW_BoundingBox)this.results.get(i)).isCensored()) {
+                } else if (isBlackBar) {
                     g.setColor(Color.BLACK);
                     g.fillRect(bounding_box.x, bounding_box.y, bounding_box.width, bounding_box.height);
+                } else {
+                    blurboxes.add(bounding_box);
                 }
-            } else if (((NSFW_BoundingBox)this.results.get(i)).isCensored()) {
-                blurboxes.add(bounding_box);
+            }
+
+            if (result.getSticker() != null) {
+                this.paintSticker(g, result.getSticker(), bounding_box);
             }
         }
 
         if (NSWFAPI.blurButton.isSelected()) {
             this.blurbuff = copyImage(paintedImage);
-            fastblur(this.blurbuff, Math.min(500, (Integer)NSWFAPI.jSpinner1.getValue()));
+            fastblur(this.blurbuff, Math.min(500, (Integer) NSWFAPI.jSpinner1.getValue()));
             this.blur(paintedImage, blurboxes);
         }
 
@@ -198,51 +191,28 @@ public class NSWF_Image {
                 return this.cache_resized;
             }
         } catch (IOException var3) {
-            Logger.getLogger(NSWF_Image.class.getName()).log(Level.SEVERE, (String)null, var3);
+            Logger.getLogger(NSWF_Image.class.getName()).log(Level.SEVERE, null, var3);
             return this.cache_resized;
         }
     }
 
     public BufferedImage getPaintedImage() {
         BufferedImage org = this.getBufferedImageCopy();
-        Graphics2D g = (Graphics2D)org.getGraphics();
+        Graphics2D g = (Graphics2D) org.getGraphics();
         float thickness = 2.0F;
         g.setStroke(new BasicStroke(thickness));
 
-        for(int i = 0; i < this.results.size(); ++i) {
-            if (((NSFW_BoundingBox)this.results.get(i)).checkOptions()) {
-                Rectangle bounding_box = ((NSFW_BoundingBox)this.results.get(i)).getBounding_box();
-                g.setColor(this.getColor(((NSFW_BoundingBox)this.results.get(i)).getConfidence()));
+        for (NSFW_BoundingBox result : this.results) {
+            if (result.checkOptions()) {
+                Rectangle bounding_box = result.getBounding_box();
+                g.setColor(this.getColor(result.getConfidence()));
                 g.drawRect(bounding_box.x, bounding_box.y, bounding_box.width, bounding_box.height);
-                String s = ((NSFW_BoundingBox)this.results.get(i)).getHeadline();
-                g.setFont(new Font("Arial", 1, 12));
+                String s = result.getHeadline();
+                g.setFont(new Font("Arial", Font.BOLD, 12));
                 FontMetrics fm = g.getFontMetrics();
                 int x = bounding_box.x;
                 int y = bounding_box.y - fm.getHeight() + 8;
-                String[] splittedText = s.split("\n");
-                String[] var11 = splittedText;
-                int var12 = splittedText.length;
-
-                int var13;
-                for(var13 = 0; var13 < var12; ++var13) {
-                    String var10000 = var11[var13];
-                    y -= g.getFontMetrics().getHeight();
-                }
-
-                var11 = splittedText;
-                var12 = splittedText.length;
-
-                for(var13 = 0; var13 < var12; ++var13) {
-                    String line = var11[var13];
-                    y += g.getFontMetrics().getHeight();
-                    g.setColor(Color.WHITE);
-                    g.drawString(line, this.ShiftWest(x, 1), this.ShiftNorth(y, 1));
-                    g.drawString(line, this.ShiftWest(x, 1), this.ShiftSouth(y, 1));
-                    g.drawString(line, this.ShiftEast(x, 1), this.ShiftNorth(y, 1));
-                    g.drawString(line, this.ShiftEast(x, 1), this.ShiftSouth(y, 1));
-                    g.setColor(Color.BLACK);
-                    g.drawString(line, x, y);
-                }
+                dupeCode(g, s, x, y);
             }
         }
 
@@ -250,55 +220,59 @@ public class NSWF_Image {
         return org;
     }
 
+    private void dupeCode(Graphics2D g, String s, int x, int y) {
+        String[] splitText = s.split("\n");
+        String[] var11 = splitText;
+        int var12 = splitText.length;
+
+        int var13;
+        for (var13 = 0; var13 < var12; ++var13) {
+            String var10000 = var11[var13];
+            y -= g.getFontMetrics().getHeight();
+        }
+
+        var11 = splitText;
+        var12 = splitText.length;
+
+        for (var13 = 0; var13 < var12; ++var13) {
+            String line = var11[var13];
+            y += g.getFontMetrics().getHeight();
+            g.setColor(Color.WHITE);
+            g.drawString(line, this.ShiftWest(x, 1), this.ShiftNorth(y, 1));
+            g.drawString(line, this.ShiftWest(x, 1), this.ShiftSouth(y, 1));
+            g.drawString(line, this.ShiftEast(x, 1), this.ShiftNorth(y, 1));
+            g.drawString(line, this.ShiftEast(x, 1), this.ShiftSouth(y, 1));
+            g.setColor(Color.BLACK);
+            g.drawString(line, x, y);
+        }
+    }
+
     public BufferedImage getResizedPaintedImage(JLabel viewport) {
         BufferedImage org = this.getBufferedImage();
         BufferedImage org_r = NSWFAPI.rsize(org, viewport);
-        double scalex = (double)viewport.getWidth() / (double)org.getWidth();
-        double scaley = (double)viewport.getHeight() / (double)org.getHeight();
+        double scalex = (double) viewport.getWidth() / (double) org.getWidth();
+        double scaley = (double) viewport.getHeight() / (double) org.getHeight();
         double scale = Math.min(scalex, scaley);
-        Graphics2D g = (Graphics2D)org_r.getGraphics();
+        Graphics2D g = (Graphics2D) org_r.getGraphics();
         float thickness = 2.0F;
         g.setStroke(new BasicStroke(thickness));
 
-        for(int i = 0; i < this.results.size(); ++i) {
-            if (((NSFW_BoundingBox)this.results.get(i)).checkOptions()) {
-                Rectangle bounding_box = ((NSFW_BoundingBox)this.results.get(i)).getBounding_box();
-                if (((NSFW_BoundingBox)this.results.get(i)).equals(NSWFAPI.del_buf)) {
+        for (NSFW_BoundingBox result : this.results) {
+            if (result.checkOptions()) {
+                Rectangle bounding_box = result.getBounding_box();
+                if (result.equals(NSWFAPI.del_buf)) {
                     g.setColor(Color.PINK);
                 } else {
-                    g.setColor(this.getColor(((NSFW_BoundingBox)this.results.get(i)).getConfidence()));
+                    g.setColor(this.getColor(result.getConfidence()));
                 }
 
-                g.drawRect((int)((double)bounding_box.x * scale), (int)((double)bounding_box.y * scale), (int)((double)bounding_box.width * scale), (int)((double)bounding_box.height * scale));
-                String s = ((NSFW_BoundingBox)this.results.get(i)).getHeadline();
-                g.setFont(new Font("Arial", 1, 12));
+                g.drawRect((int) ((double) bounding_box.x * scale), (int) ((double) bounding_box.y * scale), (int) ((double) bounding_box.width * scale), (int) ((double) bounding_box.height * scale));
+                String s = result.getHeadline();
+                g.setFont(new Font("Arial", Font.BOLD, 12));
                 FontMetrics fm = g.getFontMetrics();
-                int x = (int)((double)bounding_box.x * scale);
-                int y = (int)((double)bounding_box.y * scale) - fm.getHeight() + 8;
-                String[] splittedText = s.split("\n");
-                String[] var19 = splittedText;
-                int var20 = splittedText.length;
-
-                int var21;
-                for(var21 = 0; var21 < var20; ++var21) {
-                    String var10000 = var19[var21];
-                    y -= g.getFontMetrics().getHeight();
-                }
-
-                var19 = splittedText;
-                var20 = splittedText.length;
-
-                for(var21 = 0; var21 < var20; ++var21) {
-                    String line = var19[var21];
-                    y += g.getFontMetrics().getHeight();
-                    g.setColor(Color.WHITE);
-                    g.drawString(line, this.ShiftWest(x, 1), this.ShiftNorth(y, 1));
-                    g.drawString(line, this.ShiftWest(x, 1), this.ShiftSouth(y, 1));
-                    g.drawString(line, this.ShiftEast(x, 1), this.ShiftNorth(y, 1));
-                    g.drawString(line, this.ShiftEast(x, 1), this.ShiftSouth(y, 1));
-                    g.setColor(Color.BLACK);
-                    g.drawString(line, x, y);
-                }
+                int x = (int) ((double) bounding_box.x * scale);
+                int y = (int) ((double) bounding_box.y * scale) - fm.getHeight() + 8;
+                dupeCode(g, s, x, y);
             }
         }
 
@@ -306,18 +280,22 @@ public class NSWF_Image {
         return org_r;
     }
 
+    @SuppressWarnings("SameParameterValue")
     int ShiftNorth(int p, int distance) {
         return p - distance;
     }
 
+    @SuppressWarnings("SameParameterValue")
     int ShiftSouth(int p, int distance) {
         return p + distance;
     }
 
+    @SuppressWarnings("SameParameterValue")
     int ShiftEast(int p, int distance) {
         return p + distance;
     }
 
+    @SuppressWarnings("SameParameterValue")
     int ShiftWest(int p, int distance) {
         return p - distance;
     }
@@ -332,24 +310,25 @@ public class NSWF_Image {
         }
     }
 
-    public void saveCensoredImage() {
+    public void saveCensoredImage(boolean isPixels, boolean isBlackBar) {
         try {
             File dir = new File(NSWFAPI.output_folder + "/censored");
             if (!dir.exists()) {
-                dir.mkdir();
+                //noinspection ResultOfMethodCallIgnored
+                dir.mkdirs();
             }
 
-            BufferedImage censoredImage = this.getCensoredImage();
-            File outputfile = new File(NSWFAPI.output_folder + "/censored/" + this.alias + ".png");
-            ImageIO.write(censoredImage, "png", outputfile);
+            BufferedImage censoredImage = this.getCensoredImage(isPixels, isBlackBar);
+            File outputFile = new File(NSWFAPI.output_folder + "/censored/" + this.alias + ".png");
+            ImageIO.write(censoredImage, "png", outputFile);
         } catch (IOException var4) {
-            Logger.getLogger(NSWF_Image.class.getName()).log(Level.SEVERE, (String)null, var4);
+            Logger.getLogger(NSWF_Image.class.getName()).log(Level.SEVERE, null, var4);
         }
 
     }
 
-    public void saveImage() {
-        this.saveCensoredImage();
+    public void saveImage(boolean isPixels, boolean isBlackBar) {
+        this.saveCensoredImage(isPixels, isBlackBar);
 
         File jdir;
         BufferedImage censoredImage;
@@ -357,6 +336,7 @@ public class NSWF_Image {
         try {
             jdir = new File(NSWFAPI.output_folder + "/identified");
             if (!jdir.exists()) {
+                //noinspection ResultOfMethodCallIgnored
                 jdir.mkdir();
             }
 
@@ -364,12 +344,13 @@ public class NSWF_Image {
             outputfile = new File(NSWFAPI.output_folder + "/identified/" + this.alias + ".png");
             ImageIO.write(censoredImage, "png", outputfile);
         } catch (IOException var32) {
-            Logger.getLogger(NSWF_Image.class.getName()).log(Level.SEVERE, (String)null, var32);
+            Logger.getLogger(NSWF_Image.class.getName()).log(Level.SEVERE, null, var32);
         }
 
         try {
             jdir = new File(NSWFAPI.output_folder + "/source");
             if (!jdir.exists()) {
+                //noinspection ResultOfMethodCallIgnored
                 jdir.mkdir();
             }
 
@@ -377,40 +358,41 @@ public class NSWF_Image {
             outputfile = new File(NSWFAPI.output_folder + "/source/" + this.alias + ".png");
             ImageIO.write(censoredImage, "png", outputfile);
         } catch (IOException var31) {
-            Logger.getLogger(NSWF_Image.class.getName()).log(Level.SEVERE, (String)null, var31);
+            Logger.getLogger(NSWF_Image.class.getName()).log(Level.SEVERE, null, var31);
         }
 
         try {
             jdir = new File(NSWFAPI.output_folder + "/source");
             if (!jdir.exists()) {
+                //noinspection ResultOfMethodCallIgnored
                 jdir.mkdir();
             }
 
             PrintWriter writer = new PrintWriter(NSWFAPI.output_folder + "/source/" + this.alias + ".txt", "UTF-8");
 
-            for(int i = 0; i < this.results.size(); ++i) {
-                NSFW_BoundingBox get = (NSFW_BoundingBox)this.results.get(i);
+            for (NSFW_BoundingBox get : this.results) {
                 Rectangle bounding_box = get.bounding_box;
                 int index = get.getType().ordinal();
                 BufferedImage bufferedImage = this.getBufferedImage();
                 int x_center = bounding_box.x + bounding_box.width / 2;
                 int y_center = bounding_box.y + bounding_box.height / 2;
-                double x_p = (double)x_center / (double)bufferedImage.getWidth();
-                double y_p = (double)y_center / (double)bufferedImage.getHeight();
-                double w_p = (double)bounding_box.width / (double)bufferedImage.getWidth();
-                double h_p = (double)bounding_box.height / (double)bufferedImage.getHeight();
+                double x_p = (double) x_center / (double) bufferedImage.getWidth();
+                double y_p = (double) y_center / (double) bufferedImage.getHeight();
+                double w_p = (double) bounding_box.width / (double) bufferedImage.getWidth();
+                double h_p = (double) bounding_box.height / (double) bufferedImage.getHeight();
                 String hit = index + " " + x_p + " " + y_p + " " + w_p + " " + h_p;
                 writer.println(hit);
             }
 
             writer.close();
         } catch (IOException var35) {
-            Logger.getLogger(NSWF_Image.class.getName()).log(Level.SEVERE, (String)null, var35);
+            Logger.getLogger(NSWF_Image.class.getName()).log(Level.SEVERE, null, var35);
         }
 
         if (this.json != null) {
             jdir = new File(NSWFAPI.output_folder + "/json");
             if (!jdir.exists()) {
+                //noinspection ResultOfMethodCallIgnored
                 jdir.mkdir();
             }
 
@@ -424,38 +406,36 @@ public class NSWF_Image {
                     var39 = var30;
                     throw var30;
                 } finally {
-                    if (file != null) {
-                        if (var39 != null) {
-                            try {
-                                file.close();
-                            } catch (Throwable var29) {
-                                var39.addSuppressed(var29);
-                            }
-                        } else {
+                    if (var39 != null) {
+                        try {
                             file.close();
+                        } catch (Throwable var29) {
+                            var39.addSuppressed(var29);
                         }
+                    } else {
+                        file.close();
                     }
 
                 }
             } catch (IOException var34) {
-                Logger.getLogger(NSWFAPI.class.getName()).log(Level.SEVERE, (String)null, var34);
+                Logger.getLogger(NSWFAPI.class.getName()).log(Level.SEVERE, null, var34);
             }
         }
 
     }
 
     public void pixelate(BufferedImage img, Rectangle boundingbox) {
-        int PIX_SIZE = (Integer)NSWFAPI.jSpinner1.getValue();
+        int PIX_SIZE = (Integer) NSWFAPI.jSpinner1.getValue();
         Raster src = img.getData();
         WritableRaster dest = src.createCompatibleWritableRaster();
 
-        for(int y = 0; y < src.getHeight(); y += PIX_SIZE) {
-            for(int x = 0; x < src.getWidth(); x += PIX_SIZE) {
+        for (int y = 0; y < src.getHeight(); y += PIX_SIZE) {
+            for (int x = 0; x < src.getWidth(); x += PIX_SIZE) {
                 double[] pixel = new double[3];
                 pixel = src.getPixel(x, y, pixel);
 
-                for(int yd = y; yd < y + PIX_SIZE && yd < dest.getHeight(); ++yd) {
-                    for(int xd = x; xd < x + PIX_SIZE && xd < dest.getWidth(); ++xd) {
+                for (int yd = y; yd < y + PIX_SIZE && yd < dest.getHeight(); ++yd) {
+                    for (int xd = x; xd < x + PIX_SIZE && xd < dest.getWidth(); ++xd) {
                         if (xd >= boundingbox.x && xd <= boundingbox.x + boundingbox.width && yd >= boundingbox.y && yd <= boundingbox.y + boundingbox.height) {
                             dest.setPixel(xd, yd, pixel);
                         } else {
@@ -475,58 +455,58 @@ public class NSWF_Image {
         int h = input.getHeight();
         BufferedImage output = new BufferedImage(w, h, 2);
         Graphics2D g = output.createGraphics();
-        g.drawImage(input, 0, 0, (ImageObserver)null);
+        g.drawImage(input, 0, 0, null);
         g.setComposite(AlphaComposite.DstOut);
         Color c0 = new Color(0, 0, 0, 255);
         Color c1 = new Color(0, 0, 0, 0);
         g.setPaint(new GradientPaint(new java.awt.geom.Point2D.Double(0.0D, border), c0, new java.awt.geom.Point2D.Double(border, border), c1));
-        g.fill(new java.awt.geom.Rectangle2D.Double(0.0D, border, border, (double)h - border - border));
-        g.setPaint(new GradientPaint(new java.awt.geom.Point2D.Double((double)w - border, border), c1, new java.awt.geom.Point2D.Double((double)w, border), c0));
-        g.fill(new java.awt.geom.Rectangle2D.Double((double)w - border, border, border, (double)h - border - border));
+        g.fill(new java.awt.geom.Rectangle2D.Double(0.0D, border, border, (double) h - border - border));
+        g.setPaint(new GradientPaint(new java.awt.geom.Point2D.Double((double) w - border, border), c1, new java.awt.geom.Point2D.Double(w, border), c0));
+        g.fill(new java.awt.geom.Rectangle2D.Double((double) w - border, border, border, (double) h - border - border));
         g.setPaint(new GradientPaint(new java.awt.geom.Point2D.Double(border, 0.0D), c0, new java.awt.geom.Point2D.Double(border, border), c1));
-        g.fill(new java.awt.geom.Rectangle2D.Double(border, 0.0D, (double)w - border - border, border));
-        g.setPaint(new GradientPaint(new java.awt.geom.Point2D.Double(border, (double)h - border), c1, new java.awt.geom.Point2D.Double(border, (double)h), c0));
-        g.fill(new java.awt.geom.Rectangle2D.Double(border, (double)h - border, (double)w - border - border, border));
+        g.fill(new java.awt.geom.Rectangle2D.Double(border, 0.0D, (double) w - border - border, border));
+        g.setPaint(new GradientPaint(new java.awt.geom.Point2D.Double(border, (double) h - border), c1, new java.awt.geom.Point2D.Double(border, h), c0));
+        g.fill(new java.awt.geom.Rectangle2D.Double(border, (double) h - border, (double) w - border - border, border));
         g.setPaint(new RadialGradientPaint(new java.awt.geom.Rectangle2D.Double(0.0D, 0.0D, border + border, border + border), new float[]{0.0F, 1.0F}, new Color[]{c1, c0}, CycleMethod.NO_CYCLE));
         g.fill(new java.awt.geom.Rectangle2D.Double(0.0D, 0.0D, border, border));
-        g.setPaint(new RadialGradientPaint(new java.awt.geom.Rectangle2D.Double((double)w - border - border, 0.0D, border + border, border + border), new float[]{0.0F, 1.0F}, new Color[]{c1, c0}, CycleMethod.NO_CYCLE));
-        g.fill(new java.awt.geom.Rectangle2D.Double((double)w - border, 0.0D, border, border));
-        g.setPaint(new RadialGradientPaint(new java.awt.geom.Rectangle2D.Double(0.0D, (double)h - border - border, border + border, border + border), new float[]{0.0F, 1.0F}, new Color[]{c1, c0}, CycleMethod.NO_CYCLE));
-        g.fill(new java.awt.geom.Rectangle2D.Double(0.0D, (double)h - border, border, border));
-        g.setPaint(new RadialGradientPaint(new java.awt.geom.Rectangle2D.Double((double)w - border - border, (double)h - border - border, border + border, border + border), new float[]{0.0F, 1.0F}, new Color[]{c1, c0}, CycleMethod.NO_CYCLE));
-        g.fill(new java.awt.geom.Rectangle2D.Double((double)w - border, (double)h - border, border, border));
+        g.setPaint(new RadialGradientPaint(new java.awt.geom.Rectangle2D.Double((double) w - border - border, 0.0D, border + border, border + border), new float[]{0.0F, 1.0F}, new Color[]{c1, c0}, CycleMethod.NO_CYCLE));
+        g.fill(new java.awt.geom.Rectangle2D.Double((double) w - border, 0.0D, border, border));
+        g.setPaint(new RadialGradientPaint(new java.awt.geom.Rectangle2D.Double(0.0D, (double) h - border - border, border + border, border + border), new float[]{0.0F, 1.0F}, new Color[]{c1, c0}, CycleMethod.NO_CYCLE));
+        g.fill(new java.awt.geom.Rectangle2D.Double(0.0D, (double) h - border, border, border));
+        g.setPaint(new RadialGradientPaint(new java.awt.geom.Rectangle2D.Double((double) w - border - border, (double) h - border - border, border + border, border + border), new float[]{0.0F, 1.0F}, new Color[]{c1, c0}, CycleMethod.NO_CYCLE));
+        g.fill(new java.awt.geom.Rectangle2D.Double((double) w - border, (double) h - border, border, border));
         g.dispose();
         return output;
     }
 
     public void blur(BufferedImage im, List<Rectangle> blurboxes) {
-        List<BufferedImage> masks = new ArrayList();
+        List<BufferedImage> masks = new ArrayList<>();
 
-        for(int i = 0; i < blurboxes.size(); ++i) {
-            Rectangle box = (Rectangle)blurboxes.get(i);
+        for (Rectangle box : blurboxes) {
             BufferedImage mask = new BufferedImage(im.getWidth(), im.getHeight(), 2);
             Graphics2D g2d = mask.createGraphics();
             Color transparent = new Color(255, 0, 0, 0);
             Color fill = Color.RED;
-            RadialGradientPaint rgp = new RadialGradientPaint(new java.awt.geom.Point2D.Double((double)(box.x + box.width / 2), (double)(box.y + box.height / 2)), (float)(box.width / 2 + box.height / 2), new float[]{0.0F, (Float)NSWFAPI.jSpinner2.getValue(), 1.0F}, new Color[]{transparent, transparent, fill});
+            //noinspection IntegerDivisionInFloatingPointContext intentional floor by integer in fp
+            RadialGradientPaint rgp = new RadialGradientPaint(new java.awt.geom.Point2D.Double(box.x + box.width / 2, box.y + box.height / 2), (float) (box.width / 2 + box.height / 2), new float[]{0.0F, (Float) NSWFAPI.jSpinner2.getValue(), 1.0F}, new Color[]{transparent, transparent, fill});
             g2d.setPaint(rgp);
             AffineTransform tr2 = new AffineTransform();
-            double scale_x = box.width > box.height ? 1.0D : 1.0D / ((double)box.height / (double)box.width);
-            double scale_y = box.height > box.width ? 1.0D : 1.0D / ((double)box.width / (double)box.height);
+            double scale_x = box.width > box.height ? 1.0D : 1.0D / ((double) box.height / (double) box.width);
+            double scale_y = box.height > box.width ? 1.0D : 1.0D / ((double) box.width / (double) box.height);
             int center_x = box.x + box.width / 2;
             int center_y = box.y + box.height / 2;
-            int new_center_x = (int)((double)center_x * scale_x);
-            int new_center_y = (int)((double)center_y * scale_y);
+            int new_center_x = (int) ((double) center_x * scale_x);
+            int new_center_y = (int) ((double) center_y * scale_y);
             int sx = center_x - new_center_x;
             int sy = center_y - new_center_y;
-            int sxm = -((int)((double)sx / scale_x));
-            int sym = -((int)((double)sy / scale_y));
-            tr2.translate((double)sx, (double)sy);
+            int sxm = -((int) ((double) sx / scale_x));
+            int sym = -((int) ((double) sy / scale_y));
+            tr2.translate(sx, sy);
             tr2.scale(scale_x, scale_y);
             g2d.setTransform(tr2);
             double r_x = 1.0D / scale_x;
             double r_y = 1.0D / scale_y;
-            g2d.fill(new Rectangle(sxm, sym, (int)((double)mask.getWidth() * r_x), (int)((double)mask.getHeight() * r_y)));
+            g2d.fill(new Rectangle(sxm, sym, (int) ((double) mask.getWidth() * r_x), (int) ((double) mask.getHeight() * r_y)));
             g2d.dispose();
             masks.add(mask);
         }
@@ -535,19 +515,19 @@ public class NSWF_Image {
         Graphics2D g2d = masked.createGraphics();
         g2d.setColor(Color.RED);
         g2d.fillRect(0, 0, masked.getWidth(), masked.getHeight());
-        g2d.drawImage(im, 0, 0, (ImageObserver)null);
+        g2d.drawImage(im, 0, 0, null);
         g2d.setComposite(AlphaComposite.DstIn);
 
-        for(int i = 0; i < masks.size(); ++i) {
-            g2d.drawImage((Image)masks.get(i), 0, 0, (ImageObserver)null);
+        for (BufferedImage mask : masks) {
+            g2d.drawImage(mask, 0, 0, null);
         }
 
         g2d.dispose();
         g2d = this.blurbuff.createGraphics();
-        g2d.drawImage(masked, 0, 0, (ImageObserver)null);
+        g2d.drawImage(masked, 0, 0, null);
         g2d.dispose();
         Graphics2D g2 = im.createGraphics();
-        g2.drawImage(this.blurbuff, 0, 0, im.getWidth(), im.getHeight(), (ImageObserver)null);
+        g2.drawImage(this.blurbuff, 0, 0, im.getWidth(), im.getHeight(), null);
         g2.dispose();
     }
 
@@ -569,7 +549,7 @@ public class NSWF_Image {
             int[] dv = new int[256 * div];
 
             int i;
-            for(i = 0; i < 256 * div; ++i) {
+            for (i = 0; i < 256 * div; ++i) {
                 dv[i] = i / div;
             }
 
@@ -583,19 +563,19 @@ public class NSWF_Image {
             int y;
             int p1;
             int p2;
-            for(y = 0; y < h; ++y) {
+            for (y = 0; y < h; ++y) {
                 bsum = 0;
                 gsum = 0;
                 rsum = 0;
 
-                for(i = -radius; i <= radius; ++i) {
+                for (i = -radius; i <= radius; ++i) {
                     int p = pix[yi + Math.min(wm, Math.max(i, 0))];
                     rsum += (p & 16711680) >> 16;
                     gsum += (p & '\uff00') >> 8;
                     bsum += p & 255;
                 }
 
-                for(x = 0; x < w; ++x) {
+                for (x = 0; x < w; ++x) {
                     r[yi] = dv[rsum];
                     g[yi] = dv[gsum];
                     b[yi] = dv[bsum];
@@ -615,13 +595,13 @@ public class NSWF_Image {
                 yw += w;
             }
 
-            for(x = 0; x < w; ++x) {
+            for (x = 0; x < w; ++x) {
                 bsum = 0;
                 gsum = 0;
                 rsum = 0;
                 int yp = -radius * w;
 
-                for(i = -radius; i <= radius; ++i) {
+                for (i = -radius; i <= radius; ++i) {
                     yi = Math.max(0, yp) + x;
                     rsum += r[yi];
                     gsum += g[yi];
@@ -631,7 +611,7 @@ public class NSWF_Image {
 
                 yi = x;
 
-                for(y = 0; y < h; ++y) {
+                for (y = 0; y < h; ++y) {
                     pix[yi] = -16777216 | dv[rsum] << 16 | dv[gsum] << 8 | dv[bsum];
                     if (x == 0) {
                         vmin[y] = Math.min(y + radius + 1, hm) * w;
@@ -654,7 +634,7 @@ public class NSWF_Image {
     public static BufferedImage copyImage(BufferedImage source) {
         BufferedImage b = new BufferedImage(source.getWidth(), source.getHeight(), source.getType());
         Graphics g = b.getGraphics();
-        g.drawImage(source, 0, 0, (ImageObserver)null);
+        g.drawImage(source, 0, 0, null);
         g.dispose();
         return b;
     }
@@ -663,13 +643,13 @@ public class NSWF_Image {
         Dimension stickerdim = new Dimension(sticker.getWidth(), sticker.getHeight());
         Dimension box = new Dimension(bounding_box.width, bounding_box.height);
         Dimension scaledDimension = this.getScaledDimension(stickerdim, box);
-        g.drawImage(sticker, bounding_box.x + (box.width - scaledDimension.width) / 2, bounding_box.y + (box.height - scaledDimension.height) / 2, scaledDimension.width, scaledDimension.height, (ImageObserver)null);
+        g.drawImage(sticker, bounding_box.x + (box.width - scaledDimension.width) / 2, bounding_box.y + (box.height - scaledDimension.height) / 2, scaledDimension.width, scaledDimension.height, null);
     }
 
     Dimension getScaledDimension(Dimension imageSize, Dimension boundary) {
         double widthRatio = boundary.getWidth() / imageSize.getWidth();
         double heightRatio = boundary.getHeight() / imageSize.getHeight();
         double ratio = Math.min(widthRatio, heightRatio);
-        return new Dimension((int)((double)imageSize.width * ratio), (int)((double)imageSize.height * ratio));
+        return new Dimension((int) ((double) imageSize.width * ratio), (int) ((double) imageSize.height * ratio));
     }
 }

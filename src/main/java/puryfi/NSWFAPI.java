@@ -192,7 +192,7 @@ public class NSWFAPI extends JFrame {
             this.jLabel9.setText("Preview: " + (this.displayed_index + 1) + " / " + this.converter.size());
             NSWF_Image get = (NSWF_Image) this.converter.get(i);
             this.scoreLabel.setText("<html>NSFW Score: <b>" + get.getNsfw_score());
-            BufferedImage cens = get.getCensoredImage();
+            BufferedImage cens = get.getCensoredImage(pixelButton.isSelected(), barButton.isSelected());
             BufferedImage org_rsize = get.getResizedPaintedImage(this.originalImageLabel);
             if (this.new_bb != null) {
                 Rectangle viewportsize = this.originalImageLabel.getBounds();
@@ -688,9 +688,9 @@ public class NSWFAPI extends JFrame {
         if (!this.converter.isEmpty()) {
             for (int i = 0; i < this.converter.size(); ++i) {
                 if (this.editmode && !((NSWF_Image) this.converter.get(i)).isEdited()) {
-                    ((NSWF_Image) this.converter.get(i)).saveCensoredImage();
+                    ((NSWF_Image) this.converter.get(i)).saveCensoredImage(pixelButton.isSelected(), barButton.isSelected());
                 } else if (!((NSWF_Image) this.converter.get(i)).isIgnore()) {
-                    ((NSWF_Image) this.converter.get(i)).saveImage();
+                    ((NSWF_Image) this.converter.get(i)).saveImage(pixelButton.isSelected(), barButton.isSelected());
                     if (this.editmode) {
                         ((NSWF_Image) this.converter.get(i)).getEditedsourcefileimage().delete();
                         ((NSWF_Image) this.converter.get(i)).getEditedsourcefiletxt().delete();
