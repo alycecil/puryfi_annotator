@@ -1,7 +1,6 @@
 package puryfi;
 
 import org.apache.http.ParseException;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +25,7 @@ public class ImageLoader {
             if (file.length() > 500000L) {
                 try {
                     File file2 = loadFileDownConvert(file);
-                    if(file != file2) {//not same pointer/obj
+                    if (file != file2) {//not same pointer/obj
                         tmp = true;
                         file = file2;
                     }
@@ -36,7 +35,7 @@ public class ImageLoader {
             }
 
             if (skipApiCall) {
-                return new NSWF_Image(file, 1.0D, (JSONObject)null);
+                return new NSWF_Image(file, 1.0D, null);
             }
 
             //verify parsable
@@ -51,9 +50,9 @@ public class ImageLoader {
             return nswf_image;
 
         } catch (UnsupportedEncodingException var52) {
-            LOGGER.error ("Encoding Error", var52);
+            LOGGER.error("Encoding Error", var52);
         } catch (ParseException | IOException var53) {
-            LOGGER.error( "Other Api Error", var53);
+            LOGGER.error("Other Api Error", var53);
         }
 
         return null;
@@ -62,7 +61,7 @@ public class ImageLoader {
     private File loadFileDownConvert(File file) throws IOException {
         File outputFile = new File("output/temp/upload.jpg");
 
-        try(InputStream is = new FileInputStream(file)) {
+        try (InputStream is = new FileInputStream(file)) {
             BufferedImage image = ImageIO.read(is);
             convertToLossyJPG(outputFile, image);
         }
@@ -70,13 +69,13 @@ public class ImageLoader {
         //was lossy worth?
         if (outputFile.length() <= 4000000L) {
             return outputFile;
-        }else {
+        } else {
             return file;
         }
     }
 
-    private void convertToLossyJPG(File outputFile,  BufferedImage image) throws IOException {
-        try(FileOutputStream os = new FileOutputStream(outputFile)) {
+    private void convertToLossyJPG(File outputFile, BufferedImage image) throws IOException {
+        try (FileOutputStream os = new FileOutputStream(outputFile)) {
             ImageIO.write(image, "jpg", os);
         }
     }
