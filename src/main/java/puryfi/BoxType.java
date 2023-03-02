@@ -1,6 +1,6 @@
 package puryfi;
 
-public enum Type {
+public enum BoxType {
     BELLY_EXPOSED,
     BELLY_COVERED,
     BUTTOCKS_EXPOSED,
@@ -22,7 +22,7 @@ public enum Type {
     ANUS_COVERED,
     ANUS_EXPOSED;
 
-    public static Type getType(int label) {
-        return Type.values().length > label ? Type.values()[label] : Type.values()[0];
+    public static BoxType getType(int label) {
+        return BoxType.values().length > label ? BoxType.values()[label] : BoxType.values()[0];
     }
 }

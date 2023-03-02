@@ -12,7 +12,7 @@ import java.text.DecimalFormat;
 @SuppressWarnings("unused")
 public class NSFW_BoundingBox {
     String name;
-    Type type;
+    BoxType type;
     Rectangle bounding_box = new Rectangle();
     Double confidence;
     BufferedImage sticker = null;
@@ -179,8 +179,8 @@ public class NSFW_BoundingBox {
         }
     }
 
-    private Type toType(String name) {
-        Type type = null;
+    private BoxType toType(String name) {
+        BoxType type = null;
         byte var4 = -1;
         switch (name.hashCode()) {
             case -2103929759:
@@ -387,83 +387,83 @@ public class NSFW_BoundingBox {
         switch (var4) {
             case 0:
             case 20:
-                type = Type.BELLY_EXPOSED;
+                type = BoxType.BELLY_EXPOSED;
                 break;
             case 1:
             case 21:
-                type = Type.BELLY_COVERED;
+                type = BoxType.BELLY_COVERED;
                 break;
             case 2:
             case 22:
-                type = Type.BUTTOCKS_EXPOSED;
+                type = BoxType.BUTTOCKS_EXPOSED;
                 break;
             case 3:
             case 23:
-                type = Type.BUTTOCKS_COVERED;
+                type = BoxType.BUTTOCKS_COVERED;
                 break;
             case 4:
             case 24:
-                type = Type.MALE_BREAST_EXPOSED;
+                type = BoxType.MALE_BREAST_EXPOSED;
                 break;
             case 5:
             case 25:
-                type = Type.MALE_BREAST_COVERED;
+                type = BoxType.MALE_BREAST_COVERED;
                 break;
             case 6:
             case 26:
-                type = Type.MALE_GENITALIA_COVERED;
+                type = BoxType.MALE_GENITALIA_COVERED;
                 break;
             case 7:
             case 27:
-                type = Type.MALE_GENITALIA_EXPOSED;
+                type = BoxType.MALE_GENITALIA_EXPOSED;
                 break;
             case 8:
             case 28:
-                type = Type.FEMALE_BREAST_EXPOSED;
+                type = BoxType.FEMALE_BREAST_EXPOSED;
                 break;
             case 9:
             case 29:
-                type = Type.FEMALE_BREAST_COVERED;
+                type = BoxType.FEMALE_BREAST_COVERED;
                 break;
             case 10:
             case 30:
-                type = Type.FEMALE_GENITALIA_COVERED;
+                type = BoxType.FEMALE_GENITALIA_COVERED;
                 break;
             case 11:
             case 31:
-                type = Type.FEMALE_GENITALIA_EXPOSED;
+                type = BoxType.FEMALE_GENITALIA_EXPOSED;
                 break;
             case 12:
             case 32:
-                type = Type.ANUS_EXPOSED;
+                type = BoxType.ANUS_EXPOSED;
                 break;
             case 13:
             case 33:
-                type = Type.ANUS_COVERED;
+                type = BoxType.ANUS_COVERED;
                 break;
             case 14:
             case 34:
-                type = Type.FACE_FEMALE;
+                type = BoxType.FACE_FEMALE;
                 break;
             case 15:
             case 35:
-                type = Type.FACE_MALE;
+                type = BoxType.FACE_MALE;
                 break;
             case 16:
             case 36:
-                type = Type.FEET_COVERED;
+                type = BoxType.FEET_COVERED;
                 break;
             case 17:
             case 37:
-                type = Type.FEET_EXPOSED;
+                type = BoxType.FEET_EXPOSED;
                 break;
             case 18:
             case 38:
-                type = Type.ARMPITS_COVERED;
+                type = BoxType.ARMPITS_COVERED;
                 break;
             case 19:
             case 39:
-                type = Type.ARMPITS_EXPOSED;
+                type = BoxType.ARMPITS_EXPOSED;
                 break;
             default:
                 System.err.println("NOT FOUND:" + name);
@@ -482,11 +482,11 @@ public class NSFW_BoundingBox {
         this.confidence = 1.0D;
     }
 
-    public Type getType() {
+    public BoxType getType() {
         return this.type;
     }
 
-    public void setType(Type type) {
+    public void setType(BoxType type) {
         this.type = type;
         this.confidence = 1.0D;
     }
@@ -508,8 +508,8 @@ public class NSFW_BoundingBox {
     }
 
     public boolean isCensored() {
-        if ((this.type != Type.FACE_FEMALE || !NSWFAPI.ff_CheckBox.isSelected()) && (this.type != Type.FACE_MALE || !NSWFAPI.fm_CheckBox.isSelected())) {
-            if (this.type != Type.FACE_FEMALE && this.type != Type.FACE_MALE) {
+        if ((this.type != BoxType.FACE_FEMALE || !NSWFAPI.ff_CheckBox.isSelected()) && (this.type != BoxType.FACE_MALE || !NSWFAPI.fm_CheckBox.isSelected())) {
+            if (this.type != BoxType.FACE_FEMALE && this.type != BoxType.FACE_MALE) {
                 return this.censor && this.checkOptions();
             } else {
                 return false;
@@ -526,42 +526,42 @@ public class NSFW_BoundingBox {
     public boolean checkOptions() {
         if (this.type == null) {
             return true;
-        } else if (this.type.equals(Type.BELLY_EXPOSED) && !NSWFAPI.belly_e_button.isSelected()) {
+        } else if (this.type.equals(BoxType.BELLY_EXPOSED) && !NSWFAPI.belly_e_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.BELLY_COVERED) && !NSWFAPI.belly_c_button.isSelected()) {
+        } else if (this.type.equals(BoxType.BELLY_COVERED) && !NSWFAPI.belly_c_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.BUTTOCKS_EXPOSED) && !NSWFAPI.buttocks_e_button.isSelected()) {
+        } else if (this.type.equals(BoxType.BUTTOCKS_EXPOSED) && !NSWFAPI.buttocks_e_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.BUTTOCKS_COVERED) && !NSWFAPI.buttocks_c_button.isSelected()) {
+        } else if (this.type.equals(BoxType.BUTTOCKS_COVERED) && !NSWFAPI.buttocks_c_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.FEMALE_BREAST_EXPOSED) && !NSWFAPI.fbreats_e_button.isSelected()) {
+        } else if (this.type.equals(BoxType.FEMALE_BREAST_EXPOSED) && !NSWFAPI.fbreats_e_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.FEMALE_BREAST_COVERED) && !NSWFAPI.fbreats_c_button.isSelected()) {
+        } else if (this.type.equals(BoxType.FEMALE_BREAST_COVERED) && !NSWFAPI.fbreats_c_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.FEMALE_GENITALIA_EXPOSED) && !NSWFAPI.fgen_e_button.isSelected()) {
+        } else if (this.type.equals(BoxType.FEMALE_GENITALIA_EXPOSED) && !NSWFAPI.fgen_e_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.FEMALE_GENITALIA_COVERED) && !NSWFAPI.fgen_c_button.isSelected()) {
+        } else if (this.type.equals(BoxType.FEMALE_GENITALIA_COVERED) && !NSWFAPI.fgen_c_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.MALE_GENITALIA_COVERED) && !NSWFAPI.mgen_c_button.isSelected()) {
+        } else if (this.type.equals(BoxType.MALE_GENITALIA_COVERED) && !NSWFAPI.mgen_c_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.MALE_GENITALIA_EXPOSED) && !NSWFAPI.mgen_e_button.isSelected()) {
+        } else if (this.type.equals(BoxType.MALE_GENITALIA_EXPOSED) && !NSWFAPI.mgen_e_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.MALE_BREAST_EXPOSED) && !NSWFAPI.mbreast_e_button.isSelected()) {
+        } else if (this.type.equals(BoxType.MALE_BREAST_EXPOSED) && !NSWFAPI.mbreast_e_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.MALE_BREAST_COVERED) && !NSWFAPI.mbreast_c_button.isSelected()) {
+        } else if (this.type.equals(BoxType.MALE_BREAST_COVERED) && !NSWFAPI.mbreast_c_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.FEET_COVERED) && !NSWFAPI.feet_c_button.isSelected()) {
+        } else if (this.type.equals(BoxType.FEET_COVERED) && !NSWFAPI.feet_c_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.FEET_EXPOSED) && !NSWFAPI.feet_e_button.isSelected()) {
+        } else if (this.type.equals(BoxType.FEET_EXPOSED) && !NSWFAPI.feet_e_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.ARMPITS_COVERED) && !NSWFAPI.armpits_c_button.isSelected()) {
+        } else if (this.type.equals(BoxType.ARMPITS_COVERED) && !NSWFAPI.armpits_c_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.ARMPITS_EXPOSED) && !NSWFAPI.armpits_e_button.isSelected()) {
+        } else if (this.type.equals(BoxType.ARMPITS_EXPOSED) && !NSWFAPI.armpits_e_button.isSelected()) {
             return false;
-        } else if (this.type.equals(Type.ANUS_COVERED) && !NSWFAPI.anus_c_button.isSelected()) {
+        } else if (this.type.equals(BoxType.ANUS_COVERED) && !NSWFAPI.anus_c_button.isSelected()) {
             return false;
         } else {
-            return !this.type.equals(Type.ANUS_EXPOSED) || NSWFAPI.anus_e_button.isSelected();
+            return !this.type.equals(BoxType.ANUS_EXPOSED) || NSWFAPI.anus_e_button.isSelected();
         }
     }
 

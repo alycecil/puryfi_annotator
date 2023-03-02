@@ -1549,7 +1549,7 @@ public class NSWFAPI extends JFrame {
                             if (readFile[j] != null) {
                                 String[] splited = readFile[j].split("\\s+");
                                 int label = Integer.parseInt(splited[0]);
-                                String name = NSFW_BoundingBox.getType(label).name();
+                                String name = BoxType.getType(label).name();
                                 double x_p = Double.parseDouble(splited[1]);
                                 double y_p = Double.parseDouble(splited[2]);
                                 double w_p = Double.parseDouble(splited[3]);
