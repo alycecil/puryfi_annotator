@@ -97,6 +97,7 @@ public class NSWFAPI extends JFrame {
     private JPopupMenu jPopupMenu1;
     public static JSpinner jSpinner1;
     public static JSpinner jSpinner2;
+    public static JSpinner jSpinner3;
     private JToggleButton jToggleButton1;
     public static JComboBox<String> labelModeComboBox;
     private JRadioButtonMenuItem mbreast_c_RadioButtonMenuItem;
@@ -296,6 +297,7 @@ public class NSWFAPI extends JFrame {
         JLabel jLabel5 = new JLabel();
         this.jToggleButton1 = new JToggleButton();
         jSpinner1 = new JSpinner();
+        jSpinner3 = new JSpinner();
         this.ignoreCheckBox = new JCheckBox();
         this.scoreLabel = new JLabel();
         ff_CheckBox = new JCheckBox();
@@ -513,7 +515,7 @@ public class NSWFAPI extends JFrame {
         this.jToggleButton1.setText("Toogle options");
         this.jToggleButton1.setFocusable(false);
         this.jToggleButton1.addActionListener(NSWFAPI.this::jToggleButton1ActionPerformed);
-        jSpinner1.setModel(new SpinnerNumberModel(20, 1, (Comparable) null, 1));
+        jSpinner1.setModel(new SpinnerNumberModel(20, 3, (Comparable) null, 1));
         jSpinner1.setEnabled(false);
         jSpinner1.addChangeListener(NSWFAPI.this::jSpinner1StateChanged);
         this.ignoreCheckBox.setText("Ignore image");

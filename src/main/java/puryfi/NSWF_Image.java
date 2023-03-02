@@ -429,18 +429,26 @@ public class NSWF_Image {
         Raster src = img.getData();
         WritableRaster dest = src.createCompatibleWritableRaster();
 
+        int gap = 3;
         for (int y = 0; y < src.getHeight(); y += PIX_SIZE) {
             for (int x = 0; x < src.getWidth(); x += PIX_SIZE) {
                 double[] pixel = new double[3];
                 pixel = src.getPixel(x, y, pixel);
 
-                for (int yd = y; yd < y + PIX_SIZE && yd < dest.getHeight(); ++yd) {
-                    for (int xd = x; xd < x + PIX_SIZE && xd < dest.getWidth(); ++xd) {
+                int y1 = y + PIX_SIZE;
+                int x1 = x + PIX_SIZE;
+                for (int yd = y; yd < y1 && yd < dest.getHeight(); ++yd) {
+                    for (int xd = x; xd < x1 && xd < dest.getWidth(); ++xd) {
                         if (xd >= boundingbox.x && xd <= boundingbox.x + boundingbox.width && yd >= boundingbox.y && yd <= boundingbox.y + boundingbox.height) {
-                            dest.setPixel(xd, yd, pixel);
+                            if (xd % PIX_SIZE < gap) {
+                                defaultPixel(src, dest, yd, xd);
+                            } else if (yd % PIX_SIZE < gap) {
+                                defaultPixel(src, dest, yd, xd);
+                            } else {
+                                dest.setPixel(xd, yd, pixel);
+                            }
                         } else {
-                            double[] pix = new double[3];
-                            dest.setPixel(xd, yd, src.getPixel(xd, yd, pix));
+                            defaultPixel(src, dest, yd, xd);
                         }
                     }
                 }
@@ -448,6 +456,11 @@ public class NSWF_Image {
         }
 
         img.setData(dest);
+    }
+
+    private void defaultPixel(Raster src, WritableRaster dest, int yd, int xd) {
+        double[] pix = new double[3];
+        dest.setPixel(xd, yd, src.getPixel(xd, yd, pix));
     }
 
     private static BufferedImage blurBorder(BufferedImage input, double border) {
